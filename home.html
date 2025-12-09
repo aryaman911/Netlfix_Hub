@@ -1,133 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MovieHub - Home</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub | Browse</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="logo">MOVIEHUB</div>
-    <div class="nav-links">
-      <a href="home.html" class="nav-link active">Home</a>
-      <a href="watchlist.html" class="nav-link">My List</a>
-      <a href="admin.html" class="nav-link" id="nav-admin" style="display:none;">Admin</a>
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-left">
+      <a href="home.html" class="logo small">MOVIEHUB</a>
+      <div class="nav-links">
+        <a href="home.html" class="nav-link active">Home</a>
+        <a href="#" class="nav-link" id="nav-admin" style="display: none;">Admin</a>
+      </div>
     </div>
-    <div class="nav-user">
-      <span class="nav-username" id="nav-username">User</span>
-      <button class="btn btn-outline btn-small" onclick="logout()">Logout</button>
+    <div class="nav-center">
+      <div class="search-container">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="search-input" 
+          placeholder="Search movies & series..."
+        />
+      </div>
+    </div>
+    <div class="nav-right">
+      <button id="btn-logout" class="btn btn-ghost">Logout</button>
     </div>
   </nav>
 
+  <!-- Main Content -->
   <main class="main-content">
-    <div class="filters">
-      <input type="text" id="search-input" placeholder="Search series...">
-      <select id="genre-filter">
-        <option value="">All Genres</option>
-      </select>
-      <select id="language-filter">
-        <option value="">All Languages</option>
-      </select>
-      <button class="btn btn-secondary" onclick="searchSeries()">Search</button>
-    </div>
+    <div class="container">
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select id="filter-genre" class="filter-select">
+          <option value="">All Genres</option>
+        </select>
+        <select id="filter-language" class="filter-select">
+          <option value="">All Languages</option>
+        </select>
+        <button id="btn-apply" class="btn btn-primary">Apply Filters</button>
+        <button id="btn-clear" class="btn btn-secondary">Clear</button>
+      </div>
 
-    <h2 class="section-title">All Series</h2>
-    <div class="series-grid" id="series-grid">
-      <div class="loading">Loading...</div>
+      <!-- Series Grid -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title" id="section-title">All Series</h2>
+          <span class="text-muted" id="results-count"></span>
+        </div>
+        
+        <div id="series-grid" class="series-grid">
+          <!-- Loading skeletons -->
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+
+        <div id="empty-state" class="empty-state hidden">
+          <div class="empty-state-icon">🎬</div>
+          <h3 class="empty-state-title">No series found</h3>
+          <p class="text-muted">Try adjusting your filters or search terms</p>
+        </div>
+      </section>
     </div>
   </main>
 
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/auth.js"></script>
-  <script>
-    // Check login
-    if (!isLoggedIn()) {
-      window.location.href = 'index.html';
-    }
+  <script type="module">
+    import { requireAuth, logout, isAdmin } from "./js/auth.js";
+    import { apiRequest, formatRating, debounce, showToast } from "./js/api.js";
+    import { PLACEHOLDER_POSTER } from "./js/config.js";
 
-    // Show admin link
+    // Auth check
+    if (!requireAuth()) throw new Error("Not authenticated");
+
+    // Elements
+    const navbar = document.getElementById("navbar");
+    const searchInput = document.getElementById("search-input");
+    const filterGenre = document.getElementById("filter-genre");
+    const filterLanguage = document.getElementById("filter-language");
+    const btnApply = document.getElementById("btn-apply");
+    const btnClear = document.getElementById("btn-clear");
+    const seriesGrid = document.getElementById("series-grid");
+    const emptyState = document.getElementById("empty-state");
+    const sectionTitle = document.getElementById("section-title");
+    const resultsCount = document.getElementById("results-count");
+    const navAdmin = document.getElementById("nav-admin");
+
+    // Show admin link if user is admin
     if (isAdmin()) {
-      document.getElementById('nav-admin').style.display = 'inline';
+      navAdmin.style.display = "inline";
+      navAdmin.href = "admin.html";
     }
 
-    // Set username
-    document.getElementById('nav-username').textContent = getUsername();
+    // Logout handler
+    document.getElementById("btn-logout").addEventListener("click", logout);
 
-    // Load on page load
-    loadFilters();
-    loadSeries();
-
-    // Enter key search
-    document.getElementById('search-input').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') searchSeries();
+    // Navbar scroll effect
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add("scrolled");
+      } else {
+        navbar.classList.remove("scrolled");
+      }
     });
 
+    // ============================================
+    // LOAD FILTERS (Genres & Languages)
+    // ============================================
     async function loadFilters() {
       try {
-        const genres = await apiRequest('/reference/genres');
-        const languages = await apiRequest('/reference/languages');
-
-        const genreSelect = document.getElementById('genre-filter');
+        // Load genres
+        const genres = await apiRequest("/reference/genres");
         genres.forEach(g => {
-          genreSelect.innerHTML += `<option value="${g.type_code}">${g.type_name}</option>`;
-        });
-
-        const langSelect = document.getElementById('language-filter');
-        languages.forEach(l => {
-          langSelect.innerHTML += `<option value="${l.language_code}">${l.language_name}</option>`;
+          const opt = document.createElement("option");
+          opt.value = g.type_code;
+          opt.textContent = g.type_name;
+          filterGenre.appendChild(opt);
         });
       } catch (err) {
-        console.error('Failed to load filters:', err);
+        console.warn("Failed to load genres:", err.message);
+        // Add some default genres as fallback
+        ["Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Romance"].forEach(g => {
+          const opt = document.createElement("option");
+          opt.value = g.toUpperCase();
+          opt.textContent = g;
+          filterGenre.appendChild(opt);
+        });
       }
-    }
-
-    async function loadSeries(search = '', genre = '', language = '') {
-      const grid = document.getElementById('series-grid');
-      grid.innerHTML = '<div class="loading">Loading...</div>';
 
       try {
-        let url = '/series';
-        const params = new URLSearchParams();
-        if (search) params.append('search', search);
-        if (genre) params.append('genre', genre);
-        if (language) params.append('language', language);
-        if (params.toString()) url += '?' + params.toString();
-
-        const series = await apiRequest(url);
-
-        if (!series.length) {
-          grid.innerHTML = '<div class="empty-state">No series found</div>';
-          return;
-        }
-
-        grid.innerHTML = series.map(s => `
-          <div class="series-card" onclick="window.location.href='series.html?id=${s.series_id}'">
-            <img src="${s.poster_url || CONFIG.PLACEHOLDER_IMAGE}" 
-                 onerror="this.src='${CONFIG.PLACEHOLDER_IMAGE}'" 
-                 alt="${s.name}">
-            <div class="series-card-info">
-              <div class="series-card-title">${s.name}</div>
-              <div class="series-card-meta">
-                <span>${s.maturity_rating || 'NR'}</span>
-                <span class="series-card-rating">${s.avg_rating ? '★ ' + s.avg_rating.toFixed(1) : ''}</span>
-              </div>
-            </div>
-          </div>
-        `).join('');
+        // Load languages
+        const languages = await apiRequest("/reference/languages");
+        languages.forEach(l => {
+          const opt = document.createElement("option");
+          opt.value = l.language_code;
+          opt.textContent = l.language_name;
+          filterLanguage.appendChild(opt);
+        });
       } catch (err) {
-        grid.innerHTML = '<div class="empty-state">Failed to load: ' + err.message + '</div>';
+        console.warn("Failed to load languages:", err.message);
+        // Add some default languages as fallback
+        [
+          { code: "EN", name: "English" },
+          { code: "ES", name: "Spanish" },
+          { code: "FR", name: "French" },
+          { code: "JP", name: "Japanese" },
+          { code: "KR", name: "Korean" }
+        ].forEach(l => {
+          const opt = document.createElement("option");
+          opt.value = l.code;
+          opt.textContent = l.name;
+          filterLanguage.appendChild(opt);
+        });
       }
     }
 
-    function searchSeries() {
-      loadSeries(
-        document.getElementById('search-input').value,
-        document.getElementById('genre-filter').value,
-        document.getElementById('language-filter').value
-      );
+    // ============================================
+    // LOAD SERIES
+    // ============================================
+    async function loadSeries() {
+      const search = searchInput.value.trim();
+      const genre = filterGenre.value;
+      const language = filterLanguage.value;
+
+      // Build query string
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (genre) params.append("genre", genre);
+      if (language) params.append("language", language);
+
+      let path = "/series";
+      const qs = params.toString();
+      if (qs) path += `?${qs}`;
+
+      // Show loading state
+      seriesGrid.innerHTML = `
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      `;
+      emptyState.classList.add("hidden");
+
+      try {
+        const data = await apiRequest(path);
+        renderSeries(data);
+        
+        // Update title
+        if (search) {
+          sectionTitle.textContent = `Search Results for "${search}"`;
+        } else if (genre || language) {
+          sectionTitle.textContent = "Filtered Results";
+        } else {
+          sectionTitle.textContent = "All Series";
+        }
+      } catch (err) {
+        showToast("Failed to load series: " + err.message, "error");
+        seriesGrid.innerHTML = "";
+        emptyState.classList.remove("hidden");
+      }
     }
+
+    function renderSeries(seriesList) {
+      seriesGrid.innerHTML = "";
+
+      if (!seriesList || seriesList.length === 0) {
+        emptyState.classList.remove("hidden");
+        resultsCount.textContent = "";
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      resultsCount.textContent = `${seriesList.length} title${seriesList.length !== 1 ? "s" : ""}`;
+
+      seriesList.forEach(s => {
+        const card = document.createElement("div");
+        card.className = "series-card";
+        card.addEventListener("click", () => {
+          window.location.href = `series.html?id=${encodeURIComponent(s.series_id)}`;
+        });
+
+        const posterUrl = s.poster_url || PLACEHOLDER_POSTER;
+        const rating = formatRating(s.average_rating);
+        const year = s.release_date ? new Date(s.release_date).getFullYear() : "";
+
+        card.innerHTML = `
+          ${s.poster_url 
+            ? `<img src="${posterUrl}" alt="${s.name}" class="card-poster" loading="lazy" onerror="this.outerHTML='<div class=\\'card-poster-placeholder\\'>🎬</div>'">`
+            : `<div class="card-poster-placeholder">🎬</div>`
+          }
+          <div class="card-overlay">
+            <div class="card-title">${s.name}</div>
+            <div class="card-meta">
+              ${year ? `<span>${year}</span>` : ""}
+              ${s.maturity_rating ? `<span class="maturity-badge">${s.maturity_rating}</span>` : ""}
+              ${rating !== "N/A" ? `<span class="card-rating">★ ${rating}</span>` : ""}
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="card-title">${s.name}</div>
+            <div class="card-meta">
+              ${rating !== "N/A" ? `<span class="card-rating">★ ${rating}</span>` : ""}
+              ${s.origin_country ? `<span>${s.origin_country}</span>` : ""}
+            </div>
+          </div>
+        `;
+
+        seriesGrid.appendChild(card);
+      });
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    
+    // Debounced search
+    const debouncedSearch = debounce(loadSeries, 500);
+    searchInput.addEventListener("input", debouncedSearch);
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        loadSeries();
+      }
+    });
+
+    // Filter buttons
+    btnApply.addEventListener("click", loadSeries);
+    btnClear.addEventListener("click", () => {
+      searchInput.value = "";
+      filterGenre.value = "";
+      filterLanguage.value = "";
+      loadSeries();
+    });
+
+    // Filter dropdowns - auto-apply on change
+    filterGenre.addEventListener("change", loadSeries);
+    filterLanguage.addEventListener("change", loadSeries);
+
+    // ============================================
+    // INIT
+    // ============================================
+    (async () => {
+      await loadFilters();
+      await loadSeries();
+    })();
   </script>
 </body>
 </html>
