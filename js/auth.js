@@ -8,7 +8,7 @@ export async function login(usernameOrEmail, password) {
     password: password,
   };
 
-  const data = await apiRequest("/auth/login", {
+  const data = await apiRequest("/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
