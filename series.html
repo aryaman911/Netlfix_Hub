@@ -1,52 +1,374 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>MovieHub | Series Detail</title>
-    <link rel="stylesheet" href="css/styles.css" />
-  </head>
-  <body class="page-body">
-    <header class="top-nav">
-      <div class="nav-left">
-        <span class="logo-text small" onclick="window.location.href='home.html'">MovieHub</span>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub | Series Detail</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-left">
+      <a href="home.html" class="logo small">MOVIEHUB</a>
+      <div class="nav-links">
+        <a href="home.html" class="nav-link">Home</a>
       </div>
-      <div class="nav-right">
-        <button id="btn-back" class="btn-secondary">Back</button>
-        <button id="btn-logout" class="btn-secondary">Logout</button>
+    </div>
+    <div class="nav-right">
+      <button id="btn-back" class="btn btn-secondary">← Back</button>
+      <button id="btn-logout" class="btn btn-ghost">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Hero Banner -->
+  <div id="hero-banner" class="hero-banner">
+    <div class="hero-content">
+      <h1 class="hero-title" id="hero-title">Loading...</h1>
+      <div class="hero-meta" id="hero-meta"></div>
+      <div class="genre-tags" id="genre-tags"></div>
+      <p class="hero-description" id="hero-description"></p>
+      <div class="hero-actions">
+        <button id="btn-watchlist" class="btn btn-primary btn-lg">+ Add to Watchlist</button>
       </div>
-    </header>
+    </div>
+  </div>
 
-    <main class="content">
-      <section id="series-header" class="series-header">
-        <!-- filled by JS -->
+  <!-- Main Content -->
+  <main class="main-content" style="padding-top: 0;">
+    <div class="container">
+      <!-- Episodes Section -->
+      <section class="episodes-section section" id="episodes-section">
+        <div class="section-header">
+          <h2 class="section-title">Episodes</h2>
+          <span class="text-muted" id="episode-count"></span>
+        </div>
+        <div id="episodes-list">
+          <!-- Loading -->
+          <div class="episode-card">
+            <div class="skeleton" style="width: 180px; height: 100px; border-radius: 6px;"></div>
+            <div class="episode-info">
+              <div class="skeleton skeleton-text" style="width: 100px;"></div>
+              <div class="skeleton skeleton-text"></div>
+              <div class="skeleton skeleton-text short"></div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section>
-        <h2>Episodes</h2>
-        <ul id="episodes-list" class="episode-list"></ul>
+      <!-- Feedback Section -->
+      <section class="feedback-section section">
+        <h2 class="section-title">Ratings & Reviews</h2>
+        
+        <!-- Summary -->
+        <div class="feedback-summary" id="feedback-summary">
+          <div class="feedback-score">
+            <div class="feedback-score-value" id="avg-rating">-</div>
+            <div class="star-rating" id="avg-stars"></div>
+            <div class="feedback-score-label"><span id="rating-count">0</span> reviews</div>
+          </div>
+        </div>
+
+        <!-- Leave Review Form -->
+        <div class="feedback-form-container">
+          <h3 class="feedback-form-title">Leave Your Review</h3>
+          <form id="feedback-form" class="feedback-form">
+            <div class="form-group">
+              <label>Your Rating</label>
+              <div class="star-input" id="star-input">
+                <input type="radio" name="rating" id="star5" value="5" />
+                <label for="star5" title="5 stars">★</label>
+                <input type="radio" name="rating" id="star4" value="4" />
+                <label for="star4" title="4 stars">★</label>
+                <input type="radio" name="rating" id="star3" value="3" />
+                <label for="star3" title="3 stars">★</label>
+                <input type="radio" name="rating" id="star2" value="2" />
+                <label for="star2" title="2 stars">★</label>
+                <input type="radio" name="rating" id="star1" value="1" />
+                <label for="star1" title="1 star">★</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="feedback-text">Your Review (optional)</label>
+              <textarea 
+                id="feedback-text" 
+                class="feedback-textarea" 
+                placeholder="Write your thoughts about this series..."
+                rows="4"
+              ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+            <p id="feedback-error" class="text-error mt-1"></p>
+          </form>
+        </div>
+
+        <!-- Reviews List -->
+        <div id="reviews-list"></div>
       </section>
+    </div>
+  </main>
 
-      <section>
-        <h2>Feedback & Ratings</h2>
-        <div id="feedback-summary" class="muted"></div>
-        <ul id="feedback-list" class="feedback-list"></ul>
+  <script type="module">
+    import { requireAuth, logout } from "./js/auth.js";
+    import { apiRequest, formatDate, formatRating, generateStars, showToast } from "./js/api.js";
+    import { PLACEHOLDER_BANNER, PLACEHOLDER_EPISODE } from "./js/config.js";
 
-        <h3>Leave your feedback</h3>
-        <form id="feedback-form" class="feedback-form">
-          <label>
-            Rating (1–5)
-            <input type="number" id="feedback-rating" min="1" max="5" required />
-          </label>
-          <label>
-            Comment
-            <textarea id="feedback-text" rows="3"></textarea>
-          </label>
-          <button type="submit" class="btn-primary">Submit Feedback</button>
-          <p id="feedback-error" class="error-text"></p>
-        </form>
-      </section>
-    </main>
+    // Auth check
+    if (!requireAuth()) throw new Error("Not authenticated");
 
-    <script type="module" src="./js/series_detail.js"></script>
-  </body>
+    // Get series ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const seriesId = urlParams.get("id");
+
+    if (!seriesId) {
+      window.location.href = "home.html";
+      throw new Error("No series ID");
+    }
+
+    // Elements
+    const navbar = document.getElementById("navbar");
+    const heroBanner = document.getElementById("hero-banner");
+    const heroTitle = document.getElementById("hero-title");
+    const heroMeta = document.getElementById("hero-meta");
+    const heroDescription = document.getElementById("hero-description");
+    const genreTags = document.getElementById("genre-tags");
+    const episodesList = document.getElementById("episodes-list");
+    const episodeCount = document.getElementById("episode-count");
+    const avgRating = document.getElementById("avg-rating");
+    const avgStars = document.getElementById("avg-stars");
+    const ratingCount = document.getElementById("rating-count");
+    const reviewsList = document.getElementById("reviews-list");
+    const feedbackForm = document.getElementById("feedback-form");
+    const feedbackError = document.getElementById("feedback-error");
+    const btnWatchlist = document.getElementById("btn-watchlist");
+
+    // Event handlers
+    document.getElementById("btn-logout").addEventListener("click", logout);
+    document.getElementById("btn-back").addEventListener("click", () => window.history.back());
+
+    // Navbar scroll
+    window.addEventListener("scroll", () => {
+      navbar.classList.toggle("scrolled", window.scrollY > 50);
+    });
+
+    // ============================================
+    // LOAD SERIES DETAIL
+    // ============================================
+    async function loadSeriesDetail() {
+      try {
+        const data = await apiRequest(`/series/${seriesId}`);
+        renderSeriesDetail(data);
+        document.title = `MovieHub | ${data.name}`;
+      } catch (err) {
+        showToast("Failed to load series: " + err.message, "error");
+        heroTitle.textContent = "Series not found";
+      }
+    }
+
+    function renderSeriesDetail(s) {
+      // Banner
+      const bannerUrl = s.banner_url || s.poster_url || PLACEHOLDER_BANNER;
+      heroBanner.style.backgroundImage = `url('${bannerUrl}')`;
+
+      // Title
+      heroTitle.textContent = s.name;
+
+      // Meta info
+      const year = s.release_date ? new Date(s.release_date).getFullYear() : "";
+      const rating = formatRating(s.average_rating);
+      
+      heroMeta.innerHTML = `
+        ${year ? `<span class="hero-meta-item">${year}</span>` : ""}
+        ${s.maturity_rating ? `<span class="maturity-badge">${s.maturity_rating}</span>` : ""}
+        ${s.num_episodes ? `<span class="hero-meta-item">${s.num_episodes} Episodes</span>` : ""}
+        ${s.origin_country ? `<span class="hero-meta-item">${s.origin_country}</span>` : ""}
+        ${rating !== "N/A" ? `<span class="hero-rating">★ ${rating}</span>` : ""}
+      `;
+
+      // Genres
+      if (s.genres && s.genres.length > 0) {
+        genreTags.innerHTML = s.genres.map(g => `<span class="genre-tag">${g}</span>`).join("");
+      }
+
+      // Description
+      heroDescription.textContent = s.description || "No description available.";
+
+      // Episodes
+      renderEpisodes(s.episodes || []);
+
+      // Update rating display
+      avgRating.textContent = rating;
+      avgStars.innerHTML = generateStars(s.average_rating || 0);
+      ratingCount.textContent = s.rating_count || 0;
+    }
+
+    function renderEpisodes(episodes) {
+      episodeCount.textContent = `${episodes.length} episode${episodes.length !== 1 ? "s" : ""}`;
+
+      if (episodes.length === 0) {
+        episodesList.innerHTML = `
+          <div class="empty-state">
+            <p class="text-muted">No episodes available yet.</p>
+          </div>
+        `;
+        return;
+      }
+
+      episodesList.innerHTML = episodes.map(ep => `
+        <div class="episode-card">
+          <div class="episode-thumbnail-placeholder">▶</div>
+          <div class="episode-info">
+            <div class="episode-number">Episode ${ep.episode_number}</div>
+            <div class="episode-title">${ep.title}</div>
+            ${ep.synopsis ? `<div class="episode-synopsis">${ep.synopsis}</div>` : ""}
+            ${ep.runtime_minutes ? `<div class="episode-duration">${ep.runtime_minutes} min</div>` : ""}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    // ============================================
+    // LOAD FEEDBACK
+    // ============================================
+    async function loadFeedback() {
+      try {
+        const data = await apiRequest(`/series/${seriesId}/feedback`);
+        
+        // Update summary
+        avgRating.textContent = formatRating(data.average_rating);
+        avgStars.innerHTML = generateStars(data.average_rating || 0);
+        ratingCount.textContent = data.rating_count || 0;
+
+        // Render reviews
+        renderReviews(data.items || []);
+      } catch (err) {
+        console.warn("Failed to load feedback:", err.message);
+      }
+    }
+
+    function renderReviews(reviews) {
+      if (reviews.length === 0) {
+        reviewsList.innerHTML = `
+          <div class="empty-state" style="padding: 2rem 0;">
+            <p class="text-muted">No reviews yet. Be the first to review!</p>
+          </div>
+        `;
+        return;
+      }
+
+      reviewsList.innerHTML = reviews.map(r => `
+        <div class="review-card">
+          <div class="review-header">
+            <div>
+              <span class="review-author">${r.account_name || "Anonymous"}</span>
+              <div class="star-rating">${generateStars(r.rating)}</div>
+            </div>
+            <span class="review-date">${formatDate(r.feedback_date)}</span>
+          </div>
+          ${r.feedback_text ? `<p class="review-text">${r.feedback_text}</p>` : ""}
+        </div>
+      `).join("");
+    }
+
+    // ============================================
+    // SUBMIT FEEDBACK
+    // ============================================
+    feedbackForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      feedbackError.textContent = "";
+
+      const ratingInput = feedbackForm.querySelector('input[name="rating"]:checked');
+      if (!ratingInput) {
+        feedbackError.textContent = "Please select a rating";
+        return;
+      }
+
+      const rating = parseInt(ratingInput.value);
+      const text = document.getElementById("feedback-text").value.trim();
+
+      const submitBtn = feedbackForm.querySelector("button[type=submit]");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      try {
+        await apiRequest(`/series/${seriesId}/feedback`, {
+          method: "POST",
+          body: JSON.stringify({
+            rating,
+            feedback_text: text || null,
+          }),
+        });
+
+        showToast("Review submitted successfully!", "success");
+        feedbackForm.reset();
+        
+        // Reload data
+        await Promise.all([loadSeriesDetail(), loadFeedback()]);
+      } catch (err) {
+        feedbackError.textContent = err.message || "Failed to submit review";
+        showToast("Failed to submit review", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Review";
+      }
+    });
+
+    // ============================================
+    // WATCHLIST
+    // ============================================
+    let onWatchlist = false;
+
+    async function checkWatchlist() {
+      try {
+        const data = await apiRequest(`/me/watchlist/${seriesId}/check`);
+        onWatchlist = data.on_watchlist;
+        updateWatchlistButton();
+      } catch (err) {
+        console.warn("Failed to check watchlist:", err.message);
+      }
+    }
+
+    function updateWatchlistButton() {
+      if (onWatchlist) {
+        btnWatchlist.textContent = "✓ On Watchlist";
+        btnWatchlist.classList.add("btn-secondary");
+        btnWatchlist.classList.remove("btn-primary");
+      } else {
+        btnWatchlist.textContent = "+ Add to Watchlist";
+        btnWatchlist.classList.remove("btn-secondary");
+        btnWatchlist.classList.add("btn-primary");
+      }
+    }
+
+    btnWatchlist.addEventListener("click", async () => {
+      btnWatchlist.disabled = true;
+
+      try {
+        if (onWatchlist) {
+          await apiRequest(`/me/watchlist/${seriesId}`, { method: "DELETE" });
+          showToast("Removed from watchlist", "success");
+        } else {
+          await apiRequest(`/me/watchlist/${seriesId}`, { method: "POST" });
+          showToast("Added to watchlist!", "success");
+        }
+        onWatchlist = !onWatchlist;
+        updateWatchlistButton();
+      } catch (err) {
+        showToast(err.message || "Failed to update watchlist", "error");
+      } finally {
+        btnWatchlist.disabled = false;
+      }
+    });
+
+    // ============================================
+    // INIT
+    // ============================================
+    (async () => {
+      await loadSeriesDetail();
+      await loadFeedback();
+      await checkWatchlist();
+    })();
+  </script>
+</body>
 </html>

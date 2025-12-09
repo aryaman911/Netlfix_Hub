@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub | My Watchlist</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar scrolled">
+    <div class="nav-left">
+      <a href="home.html" class="logo small">MOVIEHUB</a>
+      <div class="nav-links">
+        <a href="home.html" class="nav-link">Home</a>
+        <a href="watchlist.html" class="nav-link active">My List</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button id="btn-logout" class="btn btn-ghost">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">My Watchlist</h2>
+          <span class="text-muted" id="watchlist-count"></span>
+        </div>
+
+        <div id="watchlist-grid" class="series-grid">
+          <!-- Loading -->
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+
+        <div id="empty-state" class="empty-state hidden">
+          <div class="empty-state-icon">📺</div>
+          <h3 class="empty-state-title">Your watchlist is empty</h3>
+          <p class="text-muted">Browse series and add them to your list!</p>
+          <a href="home.html" class="btn btn-primary mt-3">Browse Series</a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth, logout } from "./js/auth.js";
+    import { apiRequest, formatDate, showToast } from "./js/api.js";
+    import { PLACEHOLDER_POSTER } from "./js/config.js";
+
+    // Auth check
+    if (!requireAuth()) throw new Error("Not authenticated");
+
+    // Elements
+    const watchlistGrid = document.getElementById("watchlist-grid");
+    const watchlistCount = document.getElementById("watchlist-count");
+    const emptyState = document.getElementById("empty-state");
+
+    // Logout
+    document.getElementById("btn-logout").addEventListener("click", logout);
+
+    // ============================================
+    // LOAD WATCHLIST
+    // ============================================
+    async function loadWatchlist() {
+      try {
+        const data = await apiRequest("/me/watchlist");
+        renderWatchlist(data);
+      } catch (err) {
+        showToast("Failed to load watchlist: " + err.message, "error");
+        watchlistGrid.innerHTML = "";
+        emptyState.classList.remove("hidden");
+      }
+    }
+
+    function renderWatchlist(items) {
+      watchlistGrid.innerHTML = "";
+
+      if (!items || items.length === 0) {
+        emptyState.classList.remove("hidden");
+        watchlistCount.textContent = "";
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      watchlistCount.textContent = `${items.length} title${items.length !== 1 ? "s" : ""}`;
+
+      items.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "series-card";
+        card.style.position = "relative";
+
+        const posterUrl = item.poster_url || PLACEHOLDER_POSTER;
+
+        card.innerHTML = `
+          ${item.poster_url 
+            ? `<img src="${posterUrl}" alt="${item.series_name}" class="card-poster" loading="lazy" onerror="this.outerHTML='<div class=\\'card-poster-placeholder\\'>🎬</div>'">`
+            : `<div class="card-poster-placeholder">🎬</div>`
+          }
+          <div class="card-overlay" style="opacity: 1;">
+            <div class="card-title">${item.series_name}</div>
+            <div class="card-meta">
+              <span>Added ${formatDate(item.added_at)}</span>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-remove" data-id="${item.series_id}" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); border-radius: 50%; padding: 8px; z-index: 5;">✕</button>
+        `;
+
+        // Click to view series
+        card.addEventListener("click", (e) => {
+          if (!e.target.classList.contains("btn-remove")) {
+            window.location.href = `series.html?id=${item.series_id}`;
+          }
+        });
+
+        // Remove button
+        card.querySelector(".btn-remove").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          await removeFromWatchlist(item.series_id);
+        });
+
+        watchlistGrid.appendChild(card);
+      });
+    }
+
+    async function removeFromWatchlist(seriesId) {
+      try {
+        await apiRequest(`/me/watchlist/${seriesId}`, { method: "DELETE" });
+        showToast("Removed from watchlist", "success");
+        await loadWatchlist();
+      } catch (err) {
+        showToast("Failed to remove: " + err.message, "error");
+      }
+    }
+
+    // Init
+    loadWatchlist();
+  </script>
+</body>
+</html>

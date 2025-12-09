@@ -1,88 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>MovieHub | Admin</title>
-    <link rel="stylesheet" href="css/styles.css" />
-  </head>
-  <body class="page-body">
-    <header class="top-nav">
-      <div class="nav-left">
-        <span class="logo-text small" onclick="window.location.href='home.html'">MovieHub</span>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub | Admin Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar scrolled">
+    <div class="nav-left">
+      <a href="home.html" class="logo small">MOVIEHUB</a>
+      <div class="nav-links">
+        <a href="home.html" class="nav-link">Home</a>
+        <a href="admin.html" class="nav-link active">Admin</a>
       </div>
-      <div class="nav-right">
-        <button id="btn-logout" class="btn-secondary">Logout</button>
+    </div>
+    <div class="nav-right">
+      <button id="btn-logout" class="btn btn-ghost">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <h1 style="margin-bottom: 2rem;">Admin Dashboard</h1>
+      
+      <div class="admin-layout">
+        <!-- Form Panel -->
+        <div class="admin-panel">
+          <h2 class="admin-panel-title" id="form-title">Add New Series</h2>
+          
+          <form id="series-form" class="admin-form">
+            <input type="hidden" id="series-id" />
+            
+            <div class="form-group">
+              <label for="series-name">Series Name *</label>
+              <input type="text" id="series-name" class="form-input" required placeholder="Enter series name" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="series-language">Language *</label>
+                <select id="series-language" class="filter-select" style="width: 100%;" required>
+                  <option value="">Select language</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="series-country">Country *</label>
+                <input type="text" id="series-country" class="form-input" required placeholder="e.g. US, UK, JP" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="series-release">Release Date *</label>
+                <input type="date" id="series-release" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label for="series-episodes">Number of Episodes</label>
+                <input type="number" id="series-episodes" class="form-input" min="0" value="0" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="series-description">Description</label>
+              <textarea id="series-description" class="feedback-textarea" rows="3" placeholder="Enter series description..."></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="series-maturity">Maturity Rating</label>
+                <select id="series-maturity" class="filter-select" style="width: 100%;">
+                  <option value="">Select rating</option>
+                  <option value="G">G - General</option>
+                  <option value="PG">PG - Parental Guidance</option>
+                  <option value="PG-13">PG-13</option>
+                  <option value="R">R - Restricted</option>
+                  <option value="NC-17">NC-17</option>
+                  <option value="TV-MA">TV-MA</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="series-genre">Genre</label>
+                <select id="series-genre" class="filter-select" style="width: 100%;">
+                  <option value="">Select genre</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="series-poster">Poster URL</label>
+              <input type="url" id="series-poster" class="form-input" placeholder="https://example.com/poster.jpg" />
+            </div>
+
+            <div class="form-group">
+              <label for="series-banner">Banner URL</label>
+              <input type="url" id="series-banner" class="form-input" placeholder="https://example.com/banner.jpg" />
+            </div>
+
+            <div class="flex gap-2 mt-2">
+              <button type="submit" class="btn btn-primary" id="btn-save">Save Series</button>
+              <button type="button" class="btn btn-secondary" id="btn-reset">Reset Form</button>
+            </div>
+            
+            <p id="form-error" class="text-error mt-2"></p>
+            <p id="form-success" class="text-success mt-2"></p>
+          </form>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="admin-panel">
+          <h2 class="admin-panel-title">Manage Series</h2>
+          
+          <div style="overflow-x: auto;">
+            <table class="admin-table" id="series-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Country</th>
+                  <th>Release</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="series-table-body">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </header>
+    </div>
+  </main>
 
-    <main class="content">
-      <section>
-        <h2>Admin – Manage Series</h2>
+  <script type="module">
+    import { requireAdmin, logout } from "./js/auth.js";
+    import { apiRequest, showToast } from "./js/api.js";
 
-        <form id="series-form" class="admin-form">
-          <input type="hidden" id="series-id" />
+    // Auth check - must be admin
+    if (!requireAdmin()) throw new Error("Not authorized");
 
-          <label>
-            Name
-            <input type="text" id="series-name" required />
-          </label>
-          <label>
-            Original Language Code
-            <input type="text" id="series-language" placeholder="e.g. EN" required />
-          </label>
-          <label>
-            Origin Country Code
-            <input type="text" id="series-country" placeholder="e.g. US" required />
-          </label>
-          <label>
-            Release Date
-            <input type="date" id="series-release" required />
-          </label>
-          <label>
-            Number of Episodes
-            <input type="number" id="series-num-episodes" min="1" required />
-          </label>
-          <label>
-            Description
-            <textarea id="series-description" rows="3"></textarea>
-          </label>
-          <label>
-            Maturity Rating
-            <input type="text" id="series-maturity" placeholder="PG-13" />
-          </label>
-          <label>
-            Poster URL
-            <input type="url" id="series-poster" />
-          </label>
-          <label>
-            Banner URL
-            <input type="url" id="series-banner" />
-          </label>
+    // Elements
+    const form = document.getElementById("series-form");
+    const formTitle = document.getElementById("form-title");
+    const seriesIdInput = document.getElementById("series-id");
+    const nameInput = document.getElementById("series-name");
+    const languageSelect = document.getElementById("series-language");
+    const countryInput = document.getElementById("series-country");
+    const releaseInput = document.getElementById("series-release");
+    const episodesInput = document.getElementById("series-episodes");
+    const descInput = document.getElementById("series-description");
+    const maturitySelect = document.getElementById("series-maturity");
+    const genreSelect = document.getElementById("series-genre");
+    const posterInput = document.getElementById("series-poster");
+    const bannerInput = document.getElementById("series-banner");
+    const btnSave = document.getElementById("btn-save");
+    const btnReset = document.getElementById("btn-reset");
+    const formError = document.getElementById("form-error");
+    const formSuccess = document.getElementById("form-success");
+    const tableBody = document.getElementById("series-table-body");
 
-          <button type="submit" class="btn-primary" id="series-save-btn">Save</button>
-          <button type="button" class="btn-secondary" id="series-reset-btn">Reset</button>
-          <p id="series-form-error" class="error-text"></p>
-        </form>
-      </section>
+    // Logout handler
+    document.getElementById("btn-logout").addEventListener("click", logout);
 
-      <section>
-        <h2>Existing Series</h2>
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Country</th>
-              <th>Language</th>
-              <th>Release</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="series-table-body"></tbody>
-        </table>
-      </section>
-    </main>
+    // ============================================
+    // LOAD REFERENCE DATA
+    // ============================================
+    async function loadReferenceData() {
+      // Load languages
+      try {
+        const languages = await apiRequest("/reference/languages");
+        languages.forEach(l => {
+          const opt = document.createElement("option");
+          opt.value = l.language_code;
+          opt.textContent = l.language_name;
+          languageSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.warn("Failed to load languages:", err.message);
+        // Fallback
+        [
+          { code: "EN", name: "English" },
+          { code: "ES", name: "Spanish" },
+          { code: "FR", name: "French" },
+          { code: "JP", name: "Japanese" },
+          { code: "KR", name: "Korean" },
+          { code: "DE", name: "German" },
+          { code: "IT", name: "Italian" },
+          { code: "PT", name: "Portuguese" },
+          { code: "HI", name: "Hindi" },
+          { code: "ZH", name: "Chinese" }
+        ].forEach(l => {
+          const opt = document.createElement("option");
+          opt.value = l.code;
+          opt.textContent = l.name;
+          languageSelect.appendChild(opt);
+        });
+      }
 
-    <script type="module" src="./js/admin.js"></script>
-  </body>
+      // Load genres
+      try {
+        const genres = await apiRequest("/reference/genres");
+        genres.forEach(g => {
+          const opt = document.createElement("option");
+          opt.value = g.type_code;
+          opt.textContent = g.type_name;
+          genreSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.warn("Failed to load genres:", err.message);
+        // Fallback
+        [
+          { code: "ACTION", name: "Action" },
+          { code: "COMEDY", name: "Comedy" },
+          { code: "DRAMA", name: "Drama" },
+          { code: "HORROR", name: "Horror" },
+          { code: "SCIFI", name: "Sci-Fi" },
+          { code: "ROMANCE", name: "Romance" },
+          { code: "THRILLER", name: "Thriller" },
+          { code: "DOCUMENTARY", name: "Documentary" },
+          { code: "ANIMATION", name: "Animation" },
+          { code: "FANTASY", name: "Fantasy" }
+        ].forEach(g => {
+          const opt = document.createElement("option");
+          opt.value = g.code;
+          opt.textContent = g.name;
+          genreSelect.appendChild(opt);
+        });
+      }
+    }
+
+    // ============================================
+    // LOAD SERIES TABLE
+    // ============================================
+    async function loadSeries() {
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>`;
+
+      try {
+        const data = await apiRequest("/series");
+        renderTable(data);
+      } catch (err) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-error">Failed to load: ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderTable(seriesList) {
+      if (!seriesList || seriesList.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No series found. Add one above!</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = seriesList.map(s => `
+        <tr data-id="${s.series_id}">
+          <td>${s.series_id}</td>
+          <td>${s.name}</td>
+          <td>${s.origin_country || "-"}</td>
+          <td>${s.release_date || "-"}</td>
+          <td>
+            <div class="admin-actions">
+              <button class="btn btn-sm btn-edit" data-id="${s.series_id}">Edit</button>
+              <button class="btn btn-sm btn-secondary btn-delete" data-id="${s.series_id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      // Attach event listeners
+      attachTableListeners();
+    }
+
+    function attachTableListeners() {
+      // Edit buttons
+      document.querySelectorAll(".btn-edit").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          const id = e.target.dataset.id;
+          await loadSeriesIntoForm(id);
+        });
+      });
+
+      // Delete buttons
+      document.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          const id = e.target.dataset.id;
+          if (confirm("Are you sure you want to delete this series?")) {
+            await deleteSeries(id);
+          }
+        });
+      });
+    }
+
+    // ============================================
+    // LOAD SERIES INTO FORM (EDIT)
+    // ============================================
+    async function loadSeriesIntoForm(id) {
+      clearMessages();
+      
+      try {
+        const s = await apiRequest(`/series/${id}`);
+        
+        // Populate form
+        seriesIdInput.value = s.series_id;
+        nameInput.value = s.name || "";
+        languageSelect.value = s.language_code || "";
+        countryInput.value = s.origin_country || "";
+        releaseInput.value = s.release_date || "";
+        episodesInput.value = s.num_episodes || 0;
+        descInput.value = s.description || "";
+        maturitySelect.value = s.maturity_rating || "";
+        posterInput.value = s.poster_url || "";
+        bannerInput.value = s.banner_url || "";
+        
+        // Select first genre if available
+        if (s.genres && s.genres.length > 0) {
+          genreSelect.value = s.genres[0];
+        }
+
+        // Update form UI
+        formTitle.textContent = `Edit Series: ${s.name}`;
+        btnSave.textContent = "Update Series";
+
+        // Scroll to form
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+        
+        showToast("Series loaded for editing", "success");
+      } catch (err) {
+        showToast("Failed to load series: " + err.message, "error");
+      }
+    }
+
+    // ============================================
+    // SAVE SERIES (CREATE/UPDATE)
+    // ============================================
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearMessages();
+
+      const id = seriesIdInput.value;
+      const isUpdate = !!id;
+
+      // Build payload
+      const payload = {
+        name: nameInput.value.trim(),
+        adp_language_language_code: languageSelect.value,
+        origin_country: countryInput.value.trim().toUpperCase(),
+        release_date: releaseInput.value,
+        num_episodes: parseInt(episodesInput.value) || 0,
+        description: descInput.value.trim() || null,
+        maturity_rating: maturitySelect.value || null,
+        poster_url: posterInput.value.trim() || null,
+        banner_url: bannerInput.value.trim() || null,
+      };
+
+      // Add genre if selected
+      if (genreSelect.value) {
+        payload.genre_codes = [genreSelect.value];
+      }
+
+      btnSave.disabled = true;
+      btnSave.textContent = isUpdate ? "Updating..." : "Saving...";
+
+      try {
+        if (isUpdate) {
+          await apiRequest(`/series/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          });
+          showToast("Series updated successfully!", "success");
+          formSuccess.textContent = "Series updated successfully!";
+        } else {
+          await apiRequest("/series", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          showToast("Series created successfully!", "success");
+          formSuccess.textContent = "Series created successfully!";
+        }
+
+        resetForm();
+        await loadSeries();
+      } catch (err) {
+        formError.textContent = err.message || "Failed to save series";
+        showToast("Failed to save: " + err.message, "error");
+      } finally {
+        btnSave.disabled = false;
+        btnSave.textContent = "Save Series";
+      }
+    });
+
+    // ============================================
+    // DELETE SERIES
+    // ============================================
+    async function deleteSeries(id) {
+      try {
+        await apiRequest(`/series/${id}`, { method: "DELETE" });
+        showToast("Series deleted successfully!", "success");
+        await loadSeries();
+      } catch (err) {
+        showToast("Failed to delete: " + err.message, "error");
+      }
+    }
+
+    // ============================================
+    // RESET FORM
+    // ============================================
+    function resetForm() {
+      form.reset();
+      seriesIdInput.value = "";
+      formTitle.textContent = "Add New Series";
+      btnSave.textContent = "Save Series";
+      clearMessages();
+    }
+
+    function clearMessages() {
+      formError.textContent = "";
+      formSuccess.textContent = "";
+    }
+
+    btnReset.addEventListener("click", resetForm);
+
+    // ============================================
+    // INIT
+    // ============================================
+    (async () => {
+      await loadReferenceData();
+      await loadSeries();
+    })();
+  </script>
+</body>
 </html>

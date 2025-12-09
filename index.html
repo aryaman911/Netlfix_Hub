@@ -1,115 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>MovieHub | Login</title>
-    <link rel="stylesheet" href="css/styles.css" />
-  </head>
-  <body class="auth-body">
-    <div class="auth-container">
-      <div class="auth-card">
-        <h1 class="logo-text">MovieHub</h1>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MovieHub | Welcome</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <a href="index.html" class="logo">MOVIEHUB</a>
 
-        <div class="tab-switch">
-          <button id="tab-login" class="tab active">Login</button>
-          <button id="tab-signup" class="tab">Sign Up</button>
-        </div>
-
-        <!-- Login form -->
-        <form id="login-form" class="auth-form">
-          <label>
-            Email or Username
-            <input type="text" id="login-identifier" required />
-          </label>
-          <label>
-            Password
-            <input type="password" id="login-password" required />
-          </label>
-          <button type="submit" class="btn-primary">Login</button>
-          <p id="login-error" class="error-text"></p>
-        </form>
-
-        <!-- Signup form -->
-        <form id="signup-form" class="auth-form hidden">
-          <label>
-            Email
-            <input type="email" id="signup-email" required />
-          </label>
-          <label>
-            Username
-            <input type="text" id="signup-username" required />
-          </label>
-          <label>
-            Password
-            <input type="password" id="signup-password" required />
-          </label>
-          <button type="submit" class="btn-primary">Create Account</button>
-          <p id="signup-error" class="error-text"></p>
-          <p id="signup-success" class="success-text"></p>
-        </form>
+      <div class="tab-switch">
+        <button id="tab-login" class="tab-btn active">Sign In</button>
+        <button id="tab-signup" class="tab-btn">Sign Up</button>
       </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label for="login-identifier">Email or Username</label>
+          <input 
+            type="text" 
+            id="login-identifier" 
+            class="form-input" 
+            placeholder="Enter your email or username"
+            required 
+            autocomplete="username"
+          />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input 
+            type="password" 
+            id="login-password" 
+            class="form-input" 
+            placeholder="Enter your password"
+            required 
+            autocomplete="current-password"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In</button>
+        <p id="login-error" class="text-error text-center mt-2"></p>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signup-form" class="auth-form hidden">
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input 
+            type="email" 
+            id="signup-email" 
+            class="form-input" 
+            placeholder="Enter your email"
+            required 
+            autocomplete="email"
+          />
+        </div>
+        <div class="form-group">
+          <label for="signup-username">Username</label>
+          <input 
+            type="text" 
+            id="signup-username" 
+            class="form-input" 
+            placeholder="Choose a username"
+            required 
+            autocomplete="username"
+          />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input 
+            type="password" 
+            id="signup-password" 
+            class="form-input" 
+            placeholder="Create a password"
+            required 
+            autocomplete="new-password"
+            minlength="6"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account</button>
+        <p id="signup-error" class="text-error text-center mt-2"></p>
+        <p id="signup-success" class="text-success text-center mt-2"></p>
+      </form>
     </div>
+  </div>
 
-    <script type="module">
-      import { login, signup } from "./js/auth.js";
-      import { isAdmin } from "./js/api.js";
+  <script type="module">
+    import { login, signup, redirectIfLoggedIn, isAdmin } from "./js/auth.js";
 
-      const tabLogin = document.getElementById("tab-login");
-      const tabSignup = document.getElementById("tab-signup");
-      const loginForm = document.getElementById("login-form");
-      const signupForm = document.getElementById("signup-form");
+    // Redirect if already logged in
+    redirectIfLoggedIn();
 
-      tabLogin.addEventListener("click", () => {
-        tabLogin.classList.add("active");
-        tabSignup.classList.remove("active");
-        loginForm.classList.remove("hidden");
-        signupForm.classList.add("hidden");
-      });
+    // Elements
+    const tabLogin = document.getElementById("tab-login");
+    const tabSignup = document.getElementById("tab-signup");
+    const loginForm = document.getElementById("login-form");
+    const signupForm = document.getElementById("signup-form");
+    const loginError = document.getElementById("login-error");
+    const signupError = document.getElementById("signup-error");
+    const signupSuccess = document.getElementById("signup-success");
 
-      tabSignup.addEventListener("click", () => {
-        tabSignup.classList.add("active");
-        tabLogin.classList.remove("active");
-        signupForm.classList.remove("hidden");
-        loginForm.classList.add("hidden");
-      });
+    // Tab switching
+    tabLogin.addEventListener("click", () => {
+      tabLogin.classList.add("active");
+      tabSignup.classList.remove("active");
+      loginForm.classList.remove("hidden");
+      signupForm.classList.add("hidden");
+      clearMessages();
+    });
 
-      loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const identifier = document.getElementById("login-identifier").value.trim();
-        const password = document.getElementById("login-password").value;
-        const errorEl = document.getElementById("login-error");
-        errorEl.textContent = "";
+    tabSignup.addEventListener("click", () => {
+      tabSignup.classList.add("active");
+      tabLogin.classList.remove("active");
+      signupForm.classList.remove("hidden");
+      loginForm.classList.add("hidden");
+      clearMessages();
+    });
 
-        try {
-          await login(identifier, password);
-          // redirect based on role
-          if (isAdmin()) {
-            window.location.href = "admin.html";
-          } else {
-            window.location.href = "home.html";
-          }
-        } catch (err) {
-          errorEl.textContent = err.message || "Login failed";
+    function clearMessages() {
+      loginError.textContent = "";
+      signupError.textContent = "";
+      signupSuccess.textContent = "";
+    }
+
+    // Login handler
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearMessages();
+
+      const identifier = document.getElementById("login-identifier").value.trim();
+      const password = document.getElementById("login-password").value;
+      const submitBtn = loginForm.querySelector("button[type=submit]");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in...";
+
+      try {
+        await login(identifier, password);
+        
+        // Redirect based on role
+        if (isAdmin()) {
+          window.location.href = "admin.html";
+        } else {
+          window.location.href = "home.html";
         }
-      });
+      } catch (err) {
+        loginError.textContent = err.message || "Login failed. Please try again.";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In";
+      }
+    });
 
-      signupForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = document.getElementById("signup-email").value.trim();
-        const username = document.getElementById("signup-username").value.trim();
-        const password = document.getElementById("signup-password").value;
-        const errorEl = document.getElementById("signup-error");
-        const successEl = document.getElementById("signup-success");
-        errorEl.textContent = "";
-        successEl.textContent = "";
+    // Signup handler
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearMessages();
 
-        try {
-          await signup(email, username, password);
-          successEl.textContent = "Account created! You can now log in.";
-        } catch (err) {
-          errorEl.textContent = err.message || "Sign up failed";
-        }
-      });
-    </script>
-  </body>
+      const email = document.getElementById("signup-email").value.trim();
+      const username = document.getElementById("signup-username").value.trim();
+      const password = document.getElementById("signup-password").value;
+      const submitBtn = signupForm.querySelector("button[type=submit]");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating account...";
+
+      try {
+        await signup(email, username, password);
+        signupSuccess.textContent = "Account created successfully! You can now sign in.";
+        signupForm.reset();
+        
+        // Switch to login tab after 2 seconds
+        setTimeout(() => {
+          tabLogin.click();
+        }, 2000);
+      } catch (err) {
+        signupError.textContent = err.message || "Signup failed. Please try again.";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create Account";
+      }
+    });
+  </script>
+</body>
 </html>
