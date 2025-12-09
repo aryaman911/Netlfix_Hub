@@ -1,24 +1,27 @@
 // js/auth.js
-import { apiRequest, setAuthToken, setUserInfo, clearAuthToken, isAdmin } from "./api.js";
+import { apiRequest, apiFormRequest, setAuthToken, setUserInfo, clearAuthToken, isAdmin } from "./api.js";
 
+/**
+ * Login with username/email and password
+ * FIXED: 
+ * - Endpoint is /auth/login (not /login)
+ * - Must send as form data (x-www-form-urlencoded), not JSON
+ */
 export async function login(usernameOrEmail, password) {
-  // Adjust payload to match your backend /auth/login schema
-  const payload = {
-    username: usernameOrEmail,
-    password: password,
-  };
+  // OAuth2PasswordRequestForm expects form-urlencoded data with 'username' and 'password' fields
+  const formData = new URLSearchParams();
+  formData.append("username", usernameOrEmail);  // FastAPI OAuth2 expects 'username' field
+  formData.append("password", password);
 
-  const data = await apiRequest("/login", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  // FIXED: correct endpoint
+  const data = await apiFormRequest("/auth/login", formData);
 
-  // EXPECTED RESPONSE SHAPE (adjust backend if needed):
+  // Response shape from backend:
   // {
   //   "access_token": "jwt",
   //   "token_type": "bearer",
   //   "user_id": 1,
-  //   "roles": ["USER"] or ["ADMIN"]
+  //   "roles": ["USER"] or ["ADMIN", "EMPLOYEE"]
   // }
 
   setAuthToken(data.access_token);
@@ -30,6 +33,10 @@ export async function login(usernameOrEmail, password) {
   return data;
 }
 
+/**
+ * Register a new account
+ * FIXED: Endpoint is /auth/signup (not /auth/register)
+ */
 export async function signup(email, username, password) {
   const payload = {
     email,
@@ -37,8 +44,8 @@ export async function signup(email, username, password) {
     password,
   };
 
-  // Adjust to your actual /auth/register endpoint
-  const data = await apiRequest("/auth/register", {
+  // FIXED: correct endpoint
+  const data = await apiRequest("/auth/signup", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -46,18 +53,26 @@ export async function signup(email, username, password) {
   return data;
 }
 
+/**
+ * Logout - clear stored auth data and redirect
+ */
 export function logout() {
   clearAuthToken();
   window.location.href = "index.html";
 }
 
-// Route guards
+/**
+ * Route guard - redirect to login if not authenticated
+ */
 export function requireAuth() {
   if (!localStorage.getItem("access_token")) {
     window.location.href = "index.html";
   }
 }
 
+/**
+ * Route guard - redirect if not admin/employee
+ */
 export function requireAdmin() {
   requireAuth();
   if (!isAdmin()) {

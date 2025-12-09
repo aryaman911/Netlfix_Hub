@@ -25,6 +25,7 @@ const tableBody = document.getElementById("series-table-body");
 
 async function loadSeries() {
   try {
+    // FIXED: endpoint is /series (router prefix is set in main.py)
     const data = await apiRequest("/series");
     renderTable(data);
   } catch (err) {
@@ -45,7 +46,7 @@ function renderTable(seriesList) {
       <td>${s.series_id}</td>
       <td>${s.name}</td>
       <td>${s.origin_country || ""}</td>
-      <td>${s.language || s.adp_language_language_code || ""}</td>
+      <td>${s.language_code || ""}</td>
       <td>${s.release_date || ""}</td>
       <td>
         <button class="btn-small" data-action="edit" data-id="${s.series_id}">Edit</button>
@@ -77,7 +78,7 @@ async function loadSeriesIntoForm(id) {
     const s = await apiRequest(`/series/${id}`);
     seriesIdInput.value = s.series_id;
     nameInput.value = s.name || "";
-    langInput.value = s.adp_language_language_code || "";
+    langInput.value = s.language_code || "";
     countryInput.value = s.origin_country || "";
     releaseInput.value = s.release_date || "";
     numEpInput.value = s.num_episodes || "";
@@ -110,12 +111,13 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorEl.textContent = "";
 
+  // FIXED: field names match backend schema
   const payload = {
     name: nameInput.value.trim(),
-    adp_language_language_code: langInput.value.trim(),
+    language_code: langInput.value.trim(),
     origin_country: countryInput.value.trim(),
     release_date: releaseInput.value,
-    num_episodes: Number(numEpInput.value),
+    num_episodes: Number(numEpInput.value) || 0,
     description: descInput.value.trim() || null,
     maturity_rating: maturityInput.value.trim() || null,
     poster_url: posterInput.value.trim() || null,

@@ -29,6 +29,7 @@ if (!seriesId) {
 
 async function loadSeriesDetail() {
   try {
+    // FIXED: endpoint is /series/{id}
     const data = await apiRequest(`/series/${seriesId}`);
     renderSeriesHeader(data);
     renderEpisodes(data.episodes || []);
@@ -38,8 +39,8 @@ async function loadSeriesDetail() {
 }
 
 function renderSeriesHeader(s) {
-  const avgRating =
-    s.average_rating != null ? s.average_rating.toFixed(1) : "N/A";
+  // FIXED: field names match backend response
+  const avgRating = s.avg_rating != null ? s.avg_rating.toFixed(1) : "N/A";
 
   seriesHeader.innerHTML = `
     <div class="series-banner" style="background-image:url('${s.banner_url || ""}')">
@@ -81,8 +82,11 @@ function renderEpisodes(episodes) {
 
 async function loadFeedback() {
   try {
+    // FIXED: endpoint is /series/{id}/feedback
     const data = await apiRequest(`/series/${seriesId}/feedback`);
-    // EXPECTED: { average_rating, rating_count, items: [ { rating, feedback_text, feedback_date, account_name? } ] }
+    
+    // Response shape:
+    // { average_rating, rating_count, items: [ { rating, feedback_text, feedback_date, account_name } ] }
 
     feedbackSummary.textContent = `Average rating: ${
       data.average_rating != null ? data.average_rating.toFixed(1) : "N/A"
