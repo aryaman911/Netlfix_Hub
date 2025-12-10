@@ -3,8 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MovieHub - Admin</title>
+    <title>MovieHub - Admin Panel</title>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .admin-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
+        .admin-tab { padding: 0.75rem 1.25rem; background: var(--bg-card); border: none; color: var(--text-secondary); cursor: pointer; border-radius: 8px; font-size: 0.9rem; }
+        .admin-tab:hover { background: var(--bg-hover); }
+        .admin-tab.active { background: var(--accent); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-card); padding: 1.25rem; border-radius: 12px; text-align: center; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-card .label { color: var(--text-secondary); font-size: 0.85rem; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+        .data-table th, .data-table td { padding: 0.6rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .data-table th { background: var(--bg-card); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
+        .data-table tr:hover { background: var(--bg-hover); }
+        .action-btns { display: flex; gap: 0.3rem; }
+        .btn-edit { background: #2563eb; }
+        .btn-delete { background: #dc2626; }
+        .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-secondary); padding: 2rem; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .status-badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+        .status-active { background: #166534; color: #86efac; }
+        .status-expired { background: #991b1b; color: #fca5a5; }
+        .status-suspended { background: #92400e; color: #fcd34d; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .table-container { overflow-x: auto; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -19,242 +51,546 @@
         </div>
     </nav>
 
-    <main class="admin-container">
-        <h1>Admin Panel</h1>
-
-        <div class="admin-grid">
-            <section class="admin-section">
-                <h2 id="form-title">Add New Series</h2>
-                <form id="series-form" onsubmit="saveSeries(event)">
-                    <input type="hidden" id="series-id">
-                    
-                    <div class="form-group">
-                        <label>Name *</label>
-                        <input type="text" id="series-name" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Language *</label>
-                            <select id="series-language" required>
-                                <option value="">Select</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Origin Country *</label>
-                            <input type="text" id="series-country" required>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Release Date *</label>
-                            <input type="date" id="series-release" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Episodes</label>
-                            <input type="number" id="series-episodes" min="0" value="0">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Genre</label>
-                            <select id="series-genre">
-                                <option value="">Select</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Maturity Rating</label>
-                            <select id="series-maturity">
-                                <option value="">Select</option>
-                                <option value="G">G</option>
-                                <option value="PG">PG</option>
-                                <option value="PG-13">PG-13</option>
-                                <option value="R">R</option>
-                                <option value="TV-MA">TV-MA</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="series-description" rows="3"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Poster URL</label>
-                        <input type="url" id="series-poster">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Banner URL</label>
-                        <input type="url" id="series-banner">
-                    </div>
-
-                    <div id="form-error" class="form-error"></div>
-
-                    <div style="display:flex; gap:1rem; margin-top:1rem;">
-                        <button type="submit" class="btn btn-primary">Save</button>
-                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
-                    </div>
-                </form>
-            </section>
-
-            <section class="admin-section">
-                <h2>All Series</h2>
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="series-table"></tbody>
-                </table>
-            </section>
+    <main class="main-content" style="padding:80px 4% 2rem;">
+        <h1>Admin Dashboard</h1>
+        <div class="stats-grid" id="stats-grid"></div>
+        
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="switchTab('series')">Series</button>
+            <button class="admin-tab" onclick="switchTab('episodes')">Episodes</button>
+            <button class="admin-tab" onclick="switchTab('houses')">Production Houses</button>
+            <button class="admin-tab" onclick="switchTab('producers')">Producers</button>
+            <button class="admin-tab" onclick="switchTab('contracts')">Contracts</button>
+            <button class="admin-tab" onclick="switchTab('schedules')">Schedules</button>
+        </div>
+        
+        <!-- Series Tab -->
+        <div id="tab-series" class="tab-content active">
+            <div class="section-header">
+                <h2>Manage Series</h2>
+                <button class="btn btn-primary" onclick="openSeriesModal()">+ Add Series</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="series-table"><thead><tr><th>ID</th><th>Name</th><th>Episodes</th><th>Language</th><th>Rating</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+        
+        <!-- Episodes Tab -->
+        <div id="tab-episodes" class="tab-content">
+            <div class="section-header">
+                <h2>Manage Episodes</h2>
+                <button class="btn btn-primary" onclick="openEpisodeModal()">+ Add Episode</button>
+            </div>
+            <div class="form-group" style="max-width:300px;margin-bottom:1rem;">
+                <label>Filter by Series</label>
+                <select id="episode-filter" onchange="loadEpisodes()"><option value="">All Series</option></select>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="episodes-table"><thead><tr><th>ID</th><th>Series</th><th>Ep#</th><th>Title</th><th>Runtime</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+        
+        <!-- Production Houses Tab -->
+        <div id="tab-houses" class="tab-content">
+            <div class="section-header">
+                <h2>Production Houses</h2>
+                <button class="btn btn-primary" onclick="openHouseModal()">+ Add House</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="houses-table"><thead><tr><th>ID</th><th>Name</th><th>City</th><th>Country</th><th>Est.</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+        
+        <!-- Producers Tab -->
+        <div id="tab-producers" class="tab-content">
+            <div class="section-header">
+                <h2>Producers</h2>
+                <button class="btn btn-primary" onclick="openProducerModal()">+ Add Producer</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="producers-table"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>City</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+        
+        <!-- Contracts Tab -->
+        <div id="tab-contracts" class="tab-content">
+            <div class="section-header">
+                <h2>Contracts</h2>
+                <button class="btn btn-primary" onclick="openContractModal()">+ Add Contract</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="contracts-table"><thead><tr><th>ID</th><th>Series</th><th>House</th><th>Start</th><th>End</th><th>$/Ep</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+        
+        <!-- Schedules Tab -->
+        <div id="tab-schedules" class="tab-content">
+            <div class="section-header">
+                <h2>Broadcast Schedules</h2>
+                <button class="btn btn-primary" onclick="openScheduleModal()">+ Add Schedule</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="schedules-table"><thead><tr><th>ID</th><th>Episode</th><th>Start</th><th>End</th><th>Viewers</th><th>Int.</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
         </div>
     </main>
+
+    <!-- Series Modal -->
+    <div class="modal" id="series-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="series-modal-title">Add Series</h2><button class="modal-close" onclick="closeModal('series-modal')">&times;</button></div>
+            <form id="series-form" onsubmit="saveSeries(event)">
+                <input type="hidden" id="series-id">
+                <div class="form-row"><div class="form-group"><label>Name *</label><input type="text" id="series-name" required></div><div class="form-group"><label>Language *</label><select id="series-language" required></select></div></div>
+                <div class="form-row"><div class="form-group"><label>Country *</label><select id="series-country" required></select></div><div class="form-group"><label>Release Date</label><input type="date" id="series-release"></div></div>
+                <div class="form-row"><div class="form-group"><label>Episodes</label><input type="number" id="series-episodes" min="1" value="1"></div><div class="form-group"><label>Maturity</label><select id="series-maturity"><option value="TV-G">TV-G</option><option value="TV-PG">TV-PG</option><option value="TV-14">TV-14</option><option value="TV-MA" selected>TV-MA</option></select></div></div>
+                <div class="form-group"><label>Genre</label><select id="series-genre"></select></div>
+                <div class="form-group"><label>Description</label><textarea id="series-desc" rows="2"></textarea></div>
+                <div class="form-group"><label>Poster URL</label><input type="url" id="series-poster"></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Episode Modal -->
+    <div class="modal" id="episode-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="episode-modal-title">Add Episode</h2><button class="modal-close" onclick="closeModal('episode-modal')">&times;</button></div>
+            <form id="episode-form" onsubmit="saveEpisode(event)">
+                <input type="hidden" id="episode-id">
+                <div class="form-group"><label>Series *</label><select id="episode-series" required></select></div>
+                <div class="form-row"><div class="form-group"><label>Episode # *</label><input type="number" id="episode-number" min="1" required></div><div class="form-group"><label>Runtime (min)</label><input type="number" id="episode-runtime" min="1"></div></div>
+                <div class="form-group"><label>Title *</label><input type="text" id="episode-title" required></div>
+                <div class="form-group"><label>Synopsis</label><textarea id="episode-synopsis" rows="2"></textarea></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- House Modal -->
+    <div class="modal" id="house-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="house-modal-title">Add Production House</h2><button class="modal-close" onclick="closeModal('house-modal')">&times;</button></div>
+            <form id="house-form" onsubmit="saveHouse(event)">
+                <input type="hidden" id="house-id">
+                <div class="form-group"><label>Name *</label><input type="text" id="house-name" required></div>
+                <div class="form-group"><label>Address *</label><input type="text" id="house-address1" required></div>
+                <div class="form-row"><div class="form-group"><label>City *</label><input type="text" id="house-city" required></div><div class="form-group"><label>State *</label><input type="text" id="house-state" required></div></div>
+                <div class="form-row"><div class="form-group"><label>Postal *</label><input type="text" id="house-postal" required></div><div class="form-group"><label>Country *</label><select id="house-country" required></select></div></div>
+                <div class="form-group"><label>Year Est. *</label><input type="number" id="house-year" min="1850" max="2025" required></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Producer Modal -->
+    <div class="modal" id="producer-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="producer-modal-title">Add Producer</h2><button class="modal-close" onclick="closeModal('producer-modal')">&times;</button></div>
+            <form id="producer-form" onsubmit="saveProducer(event)">
+                <input type="hidden" id="producer-id">
+                <div class="form-row"><div class="form-group"><label>First Name *</label><input type="text" id="producer-fname" required></div><div class="form-group"><label>Last Name *</label><input type="text" id="producer-lname" required></div></div>
+                <div class="form-row"><div class="form-group"><label>Email *</label><input type="email" id="producer-email" required></div><div class="form-group"><label>Phone *</label><input type="tel" id="producer-phone" required></div></div>
+                <div class="form-group"><label>Address *</label><input type="text" id="producer-address1" required></div>
+                <div class="form-row"><div class="form-group"><label>City *</label><input type="text" id="producer-city" required></div><div class="form-group"><label>State *</label><input type="text" id="producer-state" required></div></div>
+                <div class="form-row"><div class="form-group"><label>Postal *</label><input type="text" id="producer-postal" required></div><div class="form-group"><label>Country *</label><select id="producer-country" required></select></div></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contract Modal -->
+    <div class="modal" id="contract-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="contract-modal-title">Add Contract</h2><button class="modal-close" onclick="closeModal('contract-modal')">&times;</button></div>
+            <form id="contract-form" onsubmit="saveContract(event)">
+                <input type="hidden" id="contract-id">
+                <div class="form-row"><div class="form-group"><label>Series *</label><select id="contract-series" required></select></div><div class="form-group"><label>Production House *</label><select id="contract-house" required></select></div></div>
+                <div class="form-row"><div class="form-group"><label>Start Date *</label><input type="date" id="contract-start" required></div><div class="form-group"><label>End Date *</label><input type="date" id="contract-end" required></div></div>
+                <div class="form-row"><div class="form-group"><label>Per Episode $ *</label><input type="number" id="contract-charge" step="0.01" min="0" required></div><div class="form-group"><label>Status *</label><select id="contract-status" required><option value="ACTIVE">Active</option><option value="EXPIRED">Expired</option><option value="SUSPENDED">Suspended</option></select></div></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div class="modal" id="schedule-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="schedule-modal-title">Add Schedule</h2><button class="modal-close" onclick="closeModal('schedule-modal')">&times;</button></div>
+            <form id="schedule-form" onsubmit="saveSchedule(event)">
+                <input type="hidden" id="schedule-id">
+                <div class="form-group"><label>Episode *</label><select id="schedule-episode" required></select></div>
+                <div class="form-row"><div class="form-group"><label>Start *</label><input type="datetime-local" id="schedule-start" required></div><div class="form-group"><label>End *</label><input type="datetime-local" id="schedule-end" required></div></div>
+                <div class="form-row"><div class="form-group"><label>Viewers</label><input type="number" id="schedule-viewers" min="0" value="0"></div><div class="form-group"><label>Interrupted?</label><select id="schedule-interrupt"><option value="N">No</option><option value="Y">Yes</option></select></div></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+            </form>
+        </div>
+    </div>
 
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        // Check login and admin
-        if (!isLoggedIn()) {
-            window.location.href = 'index.html';
-        }
-        if (!isAdmin()) {
-            showToast('Admin access required', 'error');
-            window.location.href = 'home.html';
-        }
-
+        if (!isLoggedIn() || !isAdmin()) { window.location.href = 'index.html'; }
         document.getElementById('nav-username').textContent = getUsername();
 
-        loadDropdowns();
-        loadSeriesList();
+        var seriesList = [], housesList = [], episodesList = [];
+
+        // Load everything
+        loadStats(); loadSeries(); loadDropdowns();
+
+        async function loadStats() {
+            try {
+                var s = await apiRequest('/admin/stats');
+                document.getElementById('stats-grid').innerHTML = 
+                    '<div class="stat-card"><div class="value">'+s.total_series+'</div><div class="label">Series</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.total_episodes+'</div><div class="label">Episodes</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.total_accounts+'</div><div class="label">Accounts</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.total_production_houses+'</div><div class="label">Houses</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.total_producers+'</div><div class="label">Producers</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.active_contracts+'</div><div class="label">Active Contracts</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.total_schedules+'</div><div class="label">Schedules</div></div>'+
+                    '<div class="stat-card"><div class="value">'+s.total_feedbacks+'</div><div class="label">Reviews</div></div>';
+            } catch(e) { console.error(e); }
+        }
 
         async function loadDropdowns() {
             try {
+                var langs = await apiRequest('/reference/languages');
+                var countries = await apiRequest('/reference/countries');
                 var genres = await apiRequest('/reference/genres');
-                var languages = await apiRequest('/reference/languages');
-
-                var genreSelect = document.getElementById('series-genre');
-                genres.forEach(function(g) {
-                    genreSelect.innerHTML += '<option value="' + g.type_code + '">' + g.type_name + '</option>';
-                });
-
-                var langSelect = document.getElementById('series-language');
-                languages.forEach(function(l) {
-                    langSelect.innerHTML += '<option value="' + l.language_code + '">' + l.language_name + '</option>';
-                });
-            } catch (err) {
-                console.error(err);
-            }
+                
+                var langOpts = langs.map(function(l){ return '<option value="'+l.code+'">'+l.name+'</option>'; }).join('');
+                var countryOpts = countries.map(function(c){ return '<option value="'+c.code+'">'+c.name+'</option>'; }).join('');
+                var genreOpts = genres.map(function(g){ return '<option value="'+g.code+'">'+g.name+'</option>'; }).join('');
+                
+                document.getElementById('series-language').innerHTML = langOpts;
+                document.getElementById('series-country').innerHTML = countryOpts;
+                document.getElementById('series-genre').innerHTML = genreOpts;
+                document.getElementById('house-country').innerHTML = countryOpts;
+                document.getElementById('producer-country').innerHTML = countryOpts;
+            } catch(e) { console.error(e); }
         }
 
-        async function loadSeriesList() {
-            var tbody = document.getElementById('series-table');
-            try {
-                var series = await apiRequest('/series');
-                
-                if (!series.length) {
-                    tbody.innerHTML = '<tr><td colspan="3">No series found</td></tr>';
-                    return;
-                }
+        function switchTab(tab) {
+            document.querySelectorAll('.admin-tab').forEach(function(t){ t.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+            document.querySelector('.admin-tab[onclick*="'+tab+'"]').classList.add('active');
+            document.getElementById('tab-'+tab).classList.add('active');
+            
+            if (tab === 'episodes') loadEpisodes();
+            else if (tab === 'houses') loadHouses();
+            else if (tab === 'producers') loadProducers();
+            else if (tab === 'contracts') loadContracts();
+            else if (tab === 'schedules') loadSchedules();
+        }
 
-                tbody.innerHTML = series.map(function(s) {
-                    return '<tr>' +
-                        '<td>' + s.series_id + '</td>' +
-                        '<td>' + s.name + '</td>' +
-                        '<td>' +
-                            '<button class="btn btn-small" onclick="editSeries(' + s.series_id + ')">Edit</button> ' +
-                            '<button class="btn btn-small btn-danger" onclick="deleteSeries(' + s.series_id + ')">Delete</button>' +
-                        '</td>' +
-                    '</tr>';
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // SERIES
+        async function loadSeries() {
+            try {
+                seriesList = await apiRequest('/series');
+                var tbody = document.querySelector('#series-table tbody');
+                tbody.innerHTML = seriesList.map(function(s){
+                    return '<tr><td>'+s.series_id+'</td><td>'+s.name+'</td><td>'+s.num_episodes+'</td><td>'+s.language+'</td><td>'+(s.avg_rating||'-')+'</td><td class="action-btns"><button class="btn btn-edit btn-sm" onclick="editSeries('+s.series_id+')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteSeries('+s.series_id+')">Del</button></td></tr>';
                 }).join('');
-            } catch (err) {
-                tbody.innerHTML = '<tr><td colspan="3">Error loading series</td></tr>';
-            }
-        }
-
-        async function editSeries(id) {
-            try {
-                var s = await apiRequest('/series/' + id);
                 
-                document.getElementById('series-id').value = s.series_id;
-                document.getElementById('series-name').value = s.name || '';
-                document.getElementById('series-language').value = s.language_code || '';
-                document.getElementById('series-country').value = s.origin_country || '';
-                document.getElementById('series-release').value = s.release_date || '';
-                document.getElementById('series-episodes').value = s.num_episodes || 0;
-                document.getElementById('series-maturity').value = s.maturity_rating || '';
-                document.getElementById('series-description').value = s.description || '';
-                document.getElementById('series-poster').value = s.poster_url || '';
-                document.getElementById('series-banner').value = s.banner_url || '';
-
-                document.getElementById('form-title').textContent = 'Edit Series';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
+                // Update dropdowns
+                var opts = '<option value="">All Series</option>' + seriesList.map(function(s){ return '<option value="'+s.series_id+'">'+s.name+'</option>'; }).join('');
+                document.getElementById('episode-filter').innerHTML = opts;
+                document.getElementById('episode-series').innerHTML = seriesList.map(function(s){ return '<option value="'+s.series_id+'">'+s.name+'</option>'; }).join('');
+                document.getElementById('contract-series').innerHTML = seriesList.map(function(s){ return '<option value="'+s.series_id+'">'+s.name+'</option>'; }).join('');
+            } catch(e) { console.error(e); }
         }
 
-        async function deleteSeries(id) {
-            if (!confirm('Delete this series?')) return;
-
-            try {
-                await apiRequest('/series/' + id, { method: 'DELETE' });
-                showToast('Deleted', 'success');
-                loadSeriesList();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
-        }
-
-        function resetForm() {
-            document.getElementById('series-id').value = '';
+        function openSeriesModal(id) {
             document.getElementById('series-form').reset();
-            document.getElementById('form-title').textContent = 'Add New Series';
-            document.getElementById('form-error').textContent = '';
+            document.getElementById('series-id').value = '';
+            document.getElementById('series-modal-title').textContent = 'Add Series';
+            openModal('series-modal');
+        }
+
+        function editSeries(id) {
+            var s = seriesList.find(function(x){ return x.series_id == id; });
+            if (!s) return;
+            document.getElementById('series-id').value = s.series_id;
+            document.getElementById('series-name').value = s.name;
+            document.getElementById('series-episodes').value = s.num_episodes;
+            document.getElementById('series-release').value = s.release_date || '';
+            document.getElementById('series-desc').value = s.description || '';
+            document.getElementById('series-poster').value = s.poster_url || '';
+            document.getElementById('series-maturity').value = s.maturity_rating || 'TV-MA';
+            document.getElementById('series-modal-title').textContent = 'Edit Series';
+            openModal('series-modal');
         }
 
         async function saveSeries(e) {
             e.preventDefault();
-            var errorEl = document.getElementById('form-error');
-            errorEl.textContent = '';
-
             var id = document.getElementById('series-id').value;
-            var genre = document.getElementById('series-genre').value;
-
-            var payload = {
-                name: document.getElementById('series-name').value.trim(),
+            var data = {
+                name: document.getElementById('series-name').value,
                 language_code: document.getElementById('series-language').value,
-                origin_country: document.getElementById('series-country').value.trim(),
-                release_date: document.getElementById('series-release').value,
-                num_episodes: parseInt(document.getElementById('series-episodes').value) || 0,
-                maturity_rating: document.getElementById('series-maturity').value || null,
-                description: document.getElementById('series-description').value.trim() || null,
-                poster_url: document.getElementById('series-poster').value.trim() || null,
-                banner_url: document.getElementById('series-banner').value.trim() || null,
-                genre_codes: genre ? [genre] : [],
+                country_code: document.getElementById('series-country').value,
+                num_episodes: parseInt(document.getElementById('series-episodes').value) || 1,
+                release_date: document.getElementById('series-release').value || null,
+                description: document.getElementById('series-desc').value || null,
+                poster_url: document.getElementById('series-poster').value || null,
+                maturity_rating: document.getElementById('series-maturity').value,
+                genre_code: document.getElementById('series-genre').value
             };
-
             try {
-                if (id) {
-                    await apiRequest('/series/' + id, { method: 'PUT', body: JSON.stringify(payload) });
-                    showToast('Updated!', 'success');
-                } else {
-                    await apiRequest('/series', { method: 'POST', body: JSON.stringify(payload) });
-                    showToast('Created!', 'success');
-                }
-                resetForm();
-                loadSeriesList();
-            } catch (err) {
-                errorEl.textContent = err.message;
-            }
+                if (id) await apiRequest('/series/'+id, { method: 'PUT', body: JSON.stringify(data) });
+                else await apiRequest('/series', { method: 'POST', body: JSON.stringify(data) });
+                closeModal('series-modal');
+                loadSeries(); loadStats();
+                showToast('Series saved!', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
         }
+
+        async function deleteSeries(id) {
+            if (!confirm('Delete this series?')) return;
+            try {
+                await apiRequest('/series/'+id, { method: 'DELETE' });
+                loadSeries(); loadStats();
+                showToast('Series deleted', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        // EPISODES
+        async function loadEpisodes() {
+            try {
+                var filter = document.getElementById('episode-filter').value;
+                var url = '/admin/episodes' + (filter ? '?series_id='+filter : '');
+                episodesList = await apiRequest(url);
+                var tbody = document.querySelector('#episodes-table tbody');
+                tbody.innerHTML = episodesList.map(function(e){
+                    return '<tr><td>'+e.episode_id+'</td><td>'+e.series_name+'</td><td>'+e.episode_number+'</td><td>'+e.title+'</td><td>'+(e.runtime_minutes||'-')+' min</td><td class="action-btns"><button class="btn btn-edit btn-sm" onclick="editEpisode('+e.episode_id+')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteEpisode('+e.episode_id+')">Del</button></td></tr>';
+                }).join('');
+                
+                // Update schedule dropdown
+                document.getElementById('schedule-episode').innerHTML = episodesList.map(function(e){ return '<option value="'+e.episode_id+'">'+e.series_name+' - Ep '+e.episode_number+'</option>'; }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function openEpisodeModal() {
+            document.getElementById('episode-form').reset();
+            document.getElementById('episode-id').value = '';
+            document.getElementById('episode-modal-title').textContent = 'Add Episode';
+            openModal('episode-modal');
+        }
+
+        function editEpisode(id) {
+            var ep = episodesList.find(function(x){ return x.episode_id == id; });
+            if (!ep) return;
+            document.getElementById('episode-id').value = ep.episode_id;
+            document.getElementById('episode-series').value = ep.series_id;
+            document.getElementById('episode-number').value = ep.episode_number;
+            document.getElementById('episode-title').value = ep.title || '';
+            document.getElementById('episode-synopsis').value = ep.synopsis || '';
+            document.getElementById('episode-runtime').value = ep.runtime_minutes || '';
+            document.getElementById('episode-modal-title').textContent = 'Edit Episode';
+            openModal('episode-modal');
+        }
+
+        async function saveEpisode(e) {
+            e.preventDefault();
+            var id = document.getElementById('episode-id').value;
+            var data = {
+                series_id: parseInt(document.getElementById('episode-series').value),
+                episode_number: parseInt(document.getElementById('episode-number').value),
+                title: document.getElementById('episode-title').value,
+                synopsis: document.getElementById('episode-synopsis').value || null,
+                runtime_minutes: parseInt(document.getElementById('episode-runtime').value) || null
+            };
+            try {
+                if (id) await apiRequest('/admin/episodes/'+id, { method: 'PUT', body: JSON.stringify(data) });
+                else await apiRequest('/admin/episodes', { method: 'POST', body: JSON.stringify(data) });
+                closeModal('episode-modal');
+                loadEpisodes(); loadStats(); loadSeries();
+                showToast('Episode saved!', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteEpisode(id) {
+            if (!confirm('Delete this episode?')) return;
+            try {
+                await apiRequest('/admin/episodes/'+id, { method: 'DELETE' });
+                loadEpisodes(); loadStats(); loadSeries();
+                showToast('Episode deleted', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        // PRODUCTION HOUSES
+        async function loadHouses() {
+            try {
+                housesList = await apiRequest('/admin/production-houses');
+                var tbody = document.querySelector('#houses-table tbody');
+                tbody.innerHTML = housesList.map(function(h){
+                    return '<tr><td>'+h.house_id+'</td><td>'+h.name+'</td><td>'+h.city+'</td><td>'+h.country_name+'</td><td>'+h.year_established+'</td><td class="action-btns"><button class="btn btn-edit btn-sm" onclick="editHouse('+h.house_id+')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteHouse('+h.house_id+')">Del</button></td></tr>';
+                }).join('');
+                document.getElementById('contract-house').innerHTML = housesList.map(function(h){ return '<option value="'+h.house_id+'">'+h.name+'</option>'; }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function openHouseModal() { document.getElementById('house-form').reset(); document.getElementById('house-id').value = ''; document.getElementById('house-modal-title').textContent = 'Add Production House'; openModal('house-modal'); }
+
+        function editHouse(id) {
+            var h = housesList.find(function(x){ return x.house_id == id; });
+            if (!h) return;
+            document.getElementById('house-id').value = h.house_id;
+            document.getElementById('house-name').value = h.name;
+            document.getElementById('house-address1').value = h.address_line1;
+            document.getElementById('house-city').value = h.city;
+            document.getElementById('house-state').value = h.state_province;
+            document.getElementById('house-postal').value = h.postal_code;
+            document.getElementById('house-country').value = h.country_code;
+            document.getElementById('house-year').value = h.year_established;
+            document.getElementById('house-modal-title').textContent = 'Edit Production House';
+            openModal('house-modal');
+        }
+
+        async function saveHouse(e) {
+            e.preventDefault();
+            var id = document.getElementById('house-id').value;
+            var data = { name: document.getElementById('house-name').value, address_line1: document.getElementById('house-address1').value, city: document.getElementById('house-city').value, state_province: document.getElementById('house-state').value, postal_code: document.getElementById('house-postal').value, country_code: document.getElementById('house-country').value, year_established: parseInt(document.getElementById('house-year').value) };
+            try {
+                if (id) await apiRequest('/admin/production-houses/'+id, { method: 'PUT', body: JSON.stringify(data) });
+                else await apiRequest('/admin/production-houses', { method: 'POST', body: JSON.stringify(data) });
+                closeModal('house-modal'); loadHouses(); loadStats(); showToast('House saved!', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteHouse(id) { if (!confirm('Delete?')) return; try { await apiRequest('/admin/production-houses/'+id, { method: 'DELETE' }); loadHouses(); loadStats(); showToast('Deleted', 'success'); } catch(e) { showToast(e.message, 'error'); } }
+
+        // PRODUCERS
+        var producersList = [];
+        async function loadProducers() {
+            try {
+                producersList = await apiRequest('/admin/producers');
+                var tbody = document.querySelector('#producers-table tbody');
+                tbody.innerHTML = producersList.map(function(p){
+                    return '<tr><td>'+p.producer_id+'</td><td>'+p.first_name+' '+p.last_name+'</td><td>'+p.email+'</td><td>'+p.phone+'</td><td>'+p.city+'</td><td class="action-btns"><button class="btn btn-edit btn-sm" onclick="editProducer('+p.producer_id+')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteProducer('+p.producer_id+')">Del</button></td></tr>';
+                }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function openProducerModal() { document.getElementById('producer-form').reset(); document.getElementById('producer-id').value = ''; document.getElementById('producer-modal-title').textContent = 'Add Producer'; openModal('producer-modal'); }
+
+        function editProducer(id) {
+            var p = producersList.find(function(x){ return x.producer_id == id; });
+            if (!p) return;
+            document.getElementById('producer-id').value = p.producer_id;
+            document.getElementById('producer-fname').value = p.first_name;
+            document.getElementById('producer-lname').value = p.last_name;
+            document.getElementById('producer-email').value = p.email;
+            document.getElementById('producer-phone').value = p.phone;
+            document.getElementById('producer-address1').value = p.address_line1;
+            document.getElementById('producer-city').value = p.city;
+            document.getElementById('producer-state').value = p.state_province;
+            document.getElementById('producer-postal').value = p.postal_code;
+            document.getElementById('producer-country').value = p.country_code;
+            document.getElementById('producer-modal-title').textContent = 'Edit Producer';
+            openModal('producer-modal');
+        }
+
+        async function saveProducer(e) {
+            e.preventDefault();
+            var id = document.getElementById('producer-id').value;
+            var data = { first_name: document.getElementById('producer-fname').value, last_name: document.getElementById('producer-lname').value, email: document.getElementById('producer-email').value, phone: document.getElementById('producer-phone').value, address_line1: document.getElementById('producer-address1').value, city: document.getElementById('producer-city').value, state_province: document.getElementById('producer-state').value, postal_code: document.getElementById('producer-postal').value, country_code: document.getElementById('producer-country').value };
+            try {
+                if (id) await apiRequest('/admin/producers/'+id, { method: 'PUT', body: JSON.stringify(data) });
+                else await apiRequest('/admin/producers', { method: 'POST', body: JSON.stringify(data) });
+                closeModal('producer-modal'); loadProducers(); loadStats(); showToast('Producer saved!', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteProducer(id) { if (!confirm('Delete?')) return; try { await apiRequest('/admin/producers/'+id, { method: 'DELETE' }); loadProducers(); loadStats(); showToast('Deleted', 'success'); } catch(e) { showToast(e.message, 'error'); } }
+
+        // CONTRACTS
+        var contractsList = [];
+        async function loadContracts() {
+            try {
+                contractsList = await apiRequest('/admin/contracts');
+                var tbody = document.querySelector('#contracts-table tbody');
+                tbody.innerHTML = contractsList.map(function(c){
+                    var statusClass = 'status-'+c.status.toLowerCase();
+                    return '<tr><td>'+c.contract_id+'</td><td>'+c.series_name+'</td><td>'+c.house_name+'</td><td>'+c.contract_start_date+'</td><td>'+c.contract_end_date+'</td><td>$'+c.per_episode_charge+'</td><td><span class="status-badge '+statusClass+'">'+c.status+'</span></td><td class="action-btns"><button class="btn btn-edit btn-sm" onclick="editContract('+c.contract_id+')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteContract('+c.contract_id+')">Del</button></td></tr>';
+                }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function openContractModal() { document.getElementById('contract-form').reset(); document.getElementById('contract-id').value = ''; document.getElementById('contract-modal-title').textContent = 'Add Contract'; openModal('contract-modal'); }
+
+        function editContract(id) {
+            var c = contractsList.find(function(x){ return x.contract_id == id; });
+            if (!c) return;
+            document.getElementById('contract-id').value = c.contract_id;
+            document.getElementById('contract-series').value = c.series_id;
+            document.getElementById('contract-house').value = c.house_id;
+            document.getElementById('contract-start').value = c.contract_start_date;
+            document.getElementById('contract-end').value = c.contract_end_date;
+            document.getElementById('contract-charge').value = c.per_episode_charge;
+            document.getElementById('contract-status').value = c.status;
+            document.getElementById('contract-modal-title').textContent = 'Edit Contract';
+            openModal('contract-modal');
+        }
+
+        async function saveContract(e) {
+            e.preventDefault();
+            var id = document.getElementById('contract-id').value;
+            var data = { series_id: parseInt(document.getElementById('contract-series').value), house_id: parseInt(document.getElementById('contract-house').value), contract_start_date: document.getElementById('contract-start').value, contract_end_date: document.getElementById('contract-end').value, per_episode_charge: parseFloat(document.getElementById('contract-charge').value), status: document.getElementById('contract-status').value };
+            try {
+                if (id) await apiRequest('/admin/contracts/'+id, { method: 'PUT', body: JSON.stringify(data) });
+                else await apiRequest('/admin/contracts', { method: 'POST', body: JSON.stringify(data) });
+                closeModal('contract-modal'); loadContracts(); loadStats(); showToast('Contract saved!', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteContract(id) { if (!confirm('Delete?')) return; try { await apiRequest('/admin/contracts/'+id, { method: 'DELETE' }); loadContracts(); loadStats(); showToast('Deleted', 'success'); } catch(e) { showToast(e.message, 'error'); } }
+
+        // SCHEDULES
+        var schedulesList = [];
+        async function loadSchedules() {
+            try {
+                schedulesList = await apiRequest('/admin/schedules');
+                var tbody = document.querySelector('#schedules-table tbody');
+                tbody.innerHTML = schedulesList.map(function(s){
+                    return '<tr><td>'+s.schedule_id+'</td><td>'+s.series_name+' - '+s.episode_title+'</td><td>'+formatDT(s.start_datetime)+'</td><td>'+formatDT(s.end_datetime)+'</td><td>'+s.total_viewers.toLocaleString()+'</td><td>'+(s.tech_interrupt_yn=='Y'?'Yes':'No')+'</td><td class="action-btns"><button class="btn btn-edit btn-sm" onclick="editSchedule('+s.schedule_id+')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteSchedule('+s.schedule_id+')">Del</button></td></tr>';
+                }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function formatDT(dt) { return dt ? new Date(dt).toLocaleString() : '-'; }
+
+        function openScheduleModal() { document.getElementById('schedule-form').reset(); document.getElementById('schedule-id').value = ''; document.getElementById('schedule-modal-title').textContent = 'Add Schedule'; openModal('schedule-modal'); }
+
+        function editSchedule(id) {
+            var s = schedulesList.find(function(x){ return x.schedule_id == id; });
+            if (!s) return;
+            document.getElementById('schedule-id').value = s.schedule_id;
+            document.getElementById('schedule-episode').value = s.episode_id;
+            document.getElementById('schedule-start').value = s.start_datetime.slice(0,16);
+            document.getElementById('schedule-end').value = s.end_datetime.slice(0,16);
+            document.getElementById('schedule-viewers').value = s.total_viewers;
+            document.getElementById('schedule-interrupt').value = s.tech_interrupt_yn;
+            document.getElementById('schedule-modal-title').textContent = 'Edit Schedule';
+            openModal('schedule-modal');
+        }
+
+        async function saveSchedule(e) {
+            e.preventDefault();
+            var id = document.getElementById('schedule-id').value;
+            var data = { episode_id: parseInt(document.getElementById('schedule-episode').value), start_datetime: document.getElementById('schedule-start').value, end_datetime: document.getElementById('schedule-end').value, total_viewers: parseInt(document.getElementById('schedule-viewers').value) || 0, tech_interrupt_yn: document.getElementById('schedule-interrupt').value };
+            try {
+                if (id) await apiRequest('/admin/schedules/'+id, { method: 'PUT', body: JSON.stringify(data) });
+                else await apiRequest('/admin/schedules', { method: 'POST', body: JSON.stringify(data) });
+                closeModal('schedule-modal'); loadSchedules(); loadStats(); showToast('Schedule saved!', 'success');
+            } catch(e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteSchedule(id) { if (!confirm('Delete?')) return; try { await apiRequest('/admin/schedules/'+id, { method: 'DELETE' }); loadSchedules(); loadStats(); showToast('Deleted', 'success'); } catch(e) { showToast(e.message, 'error'); } }
     </script>
 </body>
 </html>
