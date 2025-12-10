@@ -332,13 +332,13 @@
             var data = {
                 name: document.getElementById('series-name').value,
                 language_code: document.getElementById('series-language').value,
-                country_code: document.getElementById('series-country').value,
+                origin_country: document.getElementById('series-country').value,
                 num_episodes: parseInt(document.getElementById('series-episodes').value) || 1,
                 release_date: document.getElementById('series-release').value || null,
                 description: document.getElementById('series-desc').value || null,
                 poster_url: document.getElementById('series-poster').value || null,
                 maturity_rating: document.getElementById('series-maturity').value,
-                genre_code: document.getElementById('series-genre').value
+                genre_codes: [document.getElementById('series-genre').value]
             };
             try {
                 if (id) await apiRequest('/series/'+id, { method: 'PUT', body: JSON.stringify(data) });
