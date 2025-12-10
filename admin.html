@@ -260,9 +260,9 @@
                 var countries = await apiRequest('/reference/countries');
                 var genres = await apiRequest('/reference/genres');
                 
-                var langOpts = langs.map(function(l){ return '<option value="'+l.code+'">'+l.name+'</option>'; }).join('');
-                var countryOpts = countries.map(function(c){ return '<option value="'+c.code+'">'+c.name+'</option>'; }).join('');
-                var genreOpts = genres.map(function(g){ return '<option value="'+g.code+'">'+g.name+'</option>'; }).join('');
+                var langOpts = langs.map(function(l){ return '<option value="'+l.language_code+'">'+l.language_name+'</option>'; }).join('');
+                var countryOpts = countries.map(function(c){ return '<option value="'+c.country_code+'">'+c.country_name+'</option>'; }).join('');
+                var genreOpts = genres.map(function(g){ return '<option value="'+g.type_code+'">'+g.type_name+'</option>'; }).join('');
                 
                 document.getElementById('series-language').innerHTML = langOpts;
                 document.getElementById('series-country').innerHTML = countryOpts;
